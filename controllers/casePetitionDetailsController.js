@@ -259,27 +259,16 @@ const createCasePetitionDetails = async (req, res) => {
 
       pdfBuffer = Buffer.from(templateServerResponse.data);
 
-      // Save PDF to file system only in development
-      // In production, we don't save PDFs to disk to save storage space
-      const isProduction = process.env.NODE_ENV === 'production';
+      // Save PDF to file system
+      const uploadsDir = path.join(__dirname, '..', 'uploads', 'petitions');
+      await fs.mkdir(uploadsDir, { recursive: true });
       
-      if (!isProduction) {
-        // Development: Save PDF to file system
-        const uploadsDir = path.join(__dirname, '..', 'uploads', 'petitions');
-        await fs.mkdir(uploadsDir, { recursive: true });
-        
-        const filename = `CASE_${caseId}_PET_${Date.now()}.pdf`;
-        pdfPath = path.join(uploadsDir, filename);
-        await fs.writeFile(pdfPath, pdfBuffer);
+      const filename = `CASE_${caseId}_PET_${Date.now()}.pdf`;
+      pdfPath = path.join(uploadsDir, filename);
+      await fs.writeFile(pdfPath, pdfBuffer);
 
-        // Store relative path
-        pdfPath = `uploads/petitions/${filename}`;
-      } else {
-        // Production: Don't save to disk, just store a reference
-        // PDF is generated on-demand from template server
-        pdfPath = null; // or set to a reference like `generated://${caseId}/${templateId}`
-        console.log(`PDF generated for case ${caseId} (not saved to disk in production)`);
-      }
+      // Store relative path
+      pdfPath = `uploads/petitions/${filename}`;
     } catch (templateError) {
       console.error('Error generating PDF from template-server:', templateError.message);
       // Continue without PDF - save petition anyway
