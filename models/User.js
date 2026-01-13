@@ -73,6 +73,18 @@ class User {
     return new User(result.rows[0]);
   }
 
+  // Find user by reset token
+  static async findByResetToken(token) {
+    const result = await query(
+      'SELECT * FROM "tblUsers" WHERE reset_token = $1 AND reset_token_expiry > NOW()',
+      [token]
+    );
+    if (result.rows.length === 0) {
+      return null;
+    }
+    return new User(result.rows[0]);
+  }
+
   // Create new user with password hashing
   static async create(userData) {
     const { name, email, phone_number, address, law_firm, password, created_by, status, email_verified } = userData;
@@ -166,6 +178,37 @@ class User {
     this.email_verified = true;
     this.verification_token = null;
     this.verification_token_expiry = null;
+    return this;
+  }
+
+  // Set reset token
+  async setResetToken(token, expiryHours = 1) {
+    const expiry = new Date();
+    expiry.setHours(expiry.getHours() + expiryHours);
+    
+    await query(
+      'UPDATE "tblUsers" SET reset_token = $1, reset_token_expiry = $2 WHERE user_id = $3',
+      [token, expiry, this.user_id]
+    );
+    
+    this.reset_token = token;
+    this.reset_token_expiry = expiry;
+    return this;
+  }
+
+  // Reset password with token
+  async resetPassword(newPassword) {
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+    
+    await query(
+      'UPDATE "tblUsers" SET password = $1, reset_token = NULL, reset_token_expiry = NULL WHERE user_id = $2',
+      [hashedPassword, this.user_id]
+    );
+    
+    this.password = hashedPassword;
+    this.reset_token = null;
+    this.reset_token_expiry = null;
     return this;
   }
 

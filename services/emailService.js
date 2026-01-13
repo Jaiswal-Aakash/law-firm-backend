@@ -342,9 +342,169 @@ async function sendVerificationEmail(userEmail, userName, verificationToken, bas
   }
 }
 
+// Send password reset email
+async function sendResetPasswordEmail(userEmail, userName, resetToken, baseUrl = 'http://localhost:3000') {
+  // Check if email is configured
+  if (!isEmailConfigured()) {
+    const errorMsg = 'Email service not configured. Please set EMAIL_USER and EMAIL_PASS in .env file.';
+    console.warn('⚠️  ' + errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  // Try to initialize if not already done
+  if (!transporter) {
+    initEmailService();
+  }
+
+  // Double check transporter is ready
+  if (!transporter) {
+    const errorMsg = 'Email service not initialized. Please check your email configuration in .env file.';
+    console.warn('⚠️  ' + errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  // Create reset password URL
+  const resetUrl = `${baseUrl}/api/users/reset-password?token=${resetToken}`;
+
+  const mailOptions = {
+    from: process.env.SMTP_FROM || process.env.EMAIL_USER || process.env.SMTP_USER,
+    to: userEmail,
+    subject: 'Reset Your Password - Mansoor App',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+          }
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background-color: #6B46C1;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px 5px 0 0;
+          }
+          .content {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border-radius: 0 0 5px 5px;
+          }
+          .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #6B46C1;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+          }
+          .button:hover {
+            background-color: #553C9A;
+          }
+          .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-size: 12px;
+          }
+          .code {
+            background-color: #ffffff;
+            padding: 15px;
+            border-radius: 5px;
+            border: 2px solid #6B46C1;
+            margin: 15px 0;
+            font-family: monospace;
+            word-break: break-all;
+          }
+          .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            color: #856404;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Reset Your Password</h1>
+          </div>
+          <div class="content">
+            <p>Dear ${userName},</p>
+            <p>We received a request to reset your password for your Mansoor App account.</p>
+            <p>Click the button below to reset your password:</p>
+            
+            <div style="text-align: center;">
+              <a href="${resetUrl}" class="button">Reset Password</a>
+            </div>
+            
+            <p>Or copy and paste this link into your browser:</p>
+            <div class="code">${resetUrl}</div>
+            
+            <div class="warning">
+              <p><strong>⚠️ Important:</strong></p>
+              <ul style="margin: 10px 0; padding-left: 20px;">
+                <li>This link will expire in 1 hour</li>
+                <li>If you didn't request a password reset, please ignore this email</li>
+                <li>Your password will remain unchanged if you don't click the link</li>
+              </ul>
+            </div>
+            
+            <p>For security reasons, if you didn't request this password reset, please contact our support team immediately.</p>
+            
+            <p>Best regards,<br>The Mansoor App Team</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+            <p>If the button doesn't work, please copy the link above and paste it into your browser.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+      Dear ${userName},
+
+      We received a request to reset your password for your Mansoor App account.
+
+      Click the link below to reset your password:
+      ${resetUrl}
+
+      This link will expire in 1 hour.
+
+      If you didn't request a password reset, please ignore this email. Your password will remain unchanged.
+
+      For security reasons, if you didn't request this password reset, please contact our support team immediately.
+
+      Best regards,
+      The Mansoor App Team
+    `
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('✅ Password reset email sent:', info.messageId);
+    return info;
+  } catch (error) {
+    console.error('❌ Error sending password reset email:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   sendActivationEmail,
   sendVerificationEmail,
+  sendResetPasswordEmail,
   initEmailService,
   isEmailConfigured
 };

@@ -9,7 +9,10 @@ const {
   getUserById,
   updateUser,
   changePassword,
-  deleteUser
+  deleteUser,
+  forgotPassword,
+  resetPassword,
+  showResetPasswordForm
 } = require('../controllers/userController');
 const { authenticate } = require('../middleware/auth');
 
@@ -25,6 +28,15 @@ router.get('/verify-email', verifyEmail);
 
 // POST /api/users/resend-verification - Resend verification email
 router.post('/resend-verification', resendVerificationEmail);
+
+// POST /api/users/forgot-password - Send password reset email
+router.post('/forgot-password', forgotPassword);
+
+// GET /api/users/reset-password - Show reset password form (from email link)
+router.get('/reset-password', showResetPasswordForm);
+
+// POST /api/users/reset-password - Reset password with token (query param: ?token=...)
+router.post('/reset-password', resetPassword);
 
 // Protected routes (authentication required)
 // GET /api/users - Get all users
